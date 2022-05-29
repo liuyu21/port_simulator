@@ -61,7 +61,7 @@ class MessageQueue():
 
 
 class Scheduler():
-    def __init__(self, queue_num, total_band_width, min_band_width,
+    def __init__(self, queue_num, total_band_width, min_band_width, increase_band_width,
                  receive_time=3, prob_loc=0.8, prob_scale=0.1):
         assert queue_num * min_band_width <= total_band_width, "too much queue_num!!!"
         self.queue_num = queue_num
@@ -73,7 +73,7 @@ class Scheduler():
         self.queues = []
         self.port_records = {'send': [], 'remain': []}
         self.idx = 0
-        self.step_count = 0
+        self.cycle_count = 0
 
         for i in range(queue_num):
             self.queue_records.append(
@@ -83,10 +83,10 @@ class Scheduler():
                 loc=prob_loc, scale=prob_scale, size=None), 1.0), 0.0)
             self.probs.append(prob)
             total_band_width -= min_band_width
-        while total_band_width >= min_band_width:
+        while total_band_width >= increase_band_width:
             idx = random.randint(0, queue_num-1)
-            all_band_width[idx] += min_band_width
-            total_band_width -= min_band_width
+            all_band_width[idx] += increase_band_width
+            total_band_width -= increase_band_width
 
         for band_width, prob in zip(all_band_width, self.probs):
             self.queues.append(MessageQueue(band_width, prob))
@@ -124,8 +124,8 @@ class Scheduler():
                 break
         return record, self.max_buffer_size - buffer_size
 
-    def step(self):
-        self.step_count += 1
+    def cycle(self):
+        self.cycle_count += 1
         for mq in self.queues:
             for i in range(self.receive_time):
                 mq.receive()
@@ -157,7 +157,8 @@ class Scheduler():
     def show_port_usage(self):
         plt.figure(figsize=(14, 4))
         plt.ylabel('usage')
-        plt.xlabel('step')
+        plt.xlabel('cycle')
+        plt.ylim(0.5, 1.1)
         x = list(range(len(self.port_records['send'])))
         plt.plot(x, np.array(
             self.port_records['send'])/self.max_buffer_size, 'b.')
@@ -166,7 +167,7 @@ class Scheduler():
     def show_port_remain(self):
         plt.figure(figsize=(14, 4))
         plt.ylabel('remain')
-        plt.xlabel('step')
+        plt.xlabel('cycle')
         x = list(range(len(self.port_records['send'])))
         plt.plot(x, self.port_records['remain'], 'g.')
         return
@@ -175,12 +176,13 @@ class Scheduler():
         ports_usage = []
         for i in range(self.queue_num):
             usage = self.queue_records[i]['total'] / \
-                (self.queues[i].band_width*64*self.step_count)
+                (self.queues[i].band_width*64*self.cycle_count)
             ports_usage.append(usage)
 
         plt.figure(figsize=(14, 4))
         plt.ylabel('usage')
         plt.xlabel('queue')
+        plt.ylim(0.5, 1.1)
         x = list(range(self.queue_num))
         plt.plot(x, ports_usage, 'y.')
         return
