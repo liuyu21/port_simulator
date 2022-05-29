@@ -24,7 +24,7 @@ class MessageGenerator():
 class MessageQueue():
     def __init__(self, band_width, prob):
         self.band_width = band_width
-        self.credit_new = 64 * band_width
+        self.credit_default = 64 * band_width
         self.credit = 0
         self.credit_used = 0
         self.queue = deque()
@@ -32,9 +32,9 @@ class MessageQueue():
         return
 
     def update(self):
-        self.credit += self.credit_new
+        self.credit += self.credit_default
         if len(self.queue) == 0:
-            self.credit = min(self.credit, self.credit_new)
+            self.credit = min(self.credit, self.credit_default)
         return
 
     def receive(self):
